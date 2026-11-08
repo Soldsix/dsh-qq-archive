@@ -14,7 +14,7 @@ const attempt=await mkdtemp(join(area,'attempt-')),home=join(area,'home'),profil
 const argument=name=>{const index=process.argv.indexOf(name);assert.ok(index>=0&&process.argv[index+1],'Required '+name);return process.argv[index+1]}
 const dsh=await realpath(join(root,'node_modules','@deepseek-ai','dsh','lib','bin.js'))
 const manifest=JSON.parse(await readFile(join(root,'package.json'),'utf8'))
-const archive=process.argv.includes('--archive')?await realpath(argument('--archive')):join(root,'artifacts',manifest.name+'-'+manifest.version+'.tgz')
+const archive=process.argv.includes('--archive')?(/^https:\/\//u.test(argument('--archive'))?argument('--archive'):await realpath(argument('--archive'))):join(root,'artifacts',manifest.name+'-'+manifest.version+'.tgz')
 const browserCache=await realpath(process.argv.includes('--browser-cache')?argument('--browser-cache'):join(root,'.test-artifacts','browsers'))
 process.env.PLAYWRIGHT_BROWSERS_PATH=browserCache
 const {chromium}=await import(pathToFileURL(await realpath(join(root,'node_modules','playwright','index.mjs'))).href)

@@ -16,7 +16,7 @@ const attempt=await mkdtemp(join(area,'attempt-')),home=join(area,'home'),profil
 const argument=name=>{const index=process.argv.indexOf(name);assert.ok(index>=0&&process.argv[index+1],'Required '+name);return process.argv[index+1]}
 const dsh=await realpath(join(root,'node_modules','@deepseek-ai','dsh','lib','bin.js'))
 const manifest=JSON.parse(await readFile(join(root,'package.json'),'utf8'))
-const archive=process.argv.includes('--archive')?await realpath(argument('--archive')):join(root,'artifacts',manifest.name+'-'+manifest.version+'.tgz')
+const archive=process.argv.includes('--archive')?(/^https:\/\//u.test(argument('--archive'))?argument('--archive'):await realpath(argument('--archive'))):join(root,'artifacts',manifest.name+'-'+manifest.version+'.tgz')
 const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/KEY|SECRET|TOKEN|PASSWORD|DEEPSEEK_BASE_URL/i.test(key)&&key.toUpperCase()!=='PATH'))
 await mkdir(join(area,'temp'),{recursive:true});Object.assign(env,{PATH:join(root,'node_modules','.bin')+delimiter+(process.env.PATH??process.env.Path??''),DSH_HOME:home,TEMP:join(area,'temp'),TMP:join(area,'temp'),DSH_PRIMARY_RUNTIME:'',DSH_SYSTEM_PROMPT:'Synthetic isolated profile.',DEEPSEEK_API_KEY:'synthetic-loopback-only',DEEPSEEK_BASE_URL:'http://127.0.0.1:9/anthropic'})
 async function run(argv,cwd){

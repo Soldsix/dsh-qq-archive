@@ -4,6 +4,8 @@ Opt-in durable archiving for DSH messaging plugins. Select tenant, network, bot 
 
 ## Install
 
+Install into an already working DSH profile. The pre-release Host templates disable automatic peer installation; the isolated integration tests explicitly complete required DSH peers from installed public manifests. This plugin does not repair an incomplete Host installation.
+
 ```sh
 dsh plugin --profile MY_PROFILE add https://github.com/Soldsix/dsh-qq-archive/releases/download/v0.2.1/dsh-qq-archive-0.2.1.tgz
 ```

@@ -4,6 +4,8 @@
 
 ## 安装
 
+请安装到已能正常启动的 DSH profile。当前预发布版 Host 模板关闭自动安装 peer 依赖；隔离集成测试会按已安装公开包的声明补齐必要 DSH peer。本插件不负责修复不完整的 Host 安装。
+
 ```sh
 dsh plugin --profile MY_PROFILE add https://github.com/Soldsix/dsh-qq-archive/releases/download/v0.2.1/dsh-qq-archive-0.2.1.tgz
 ```

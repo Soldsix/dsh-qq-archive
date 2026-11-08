@@ -1,0 +1,18 @@
+{
+  "name": "dsh-qq-archive",
+  "version": "0.1.0-development",
+  "description": "Scoped durable message archiving for DSH messaging plugins.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": "^22.19.0 || >=24.0.0", "dsh": "0.2.2-rc.1" },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }, "./package.json": "./package.json", "./cordis.patch.yml": "./cordis.patch.yml" },
+  "files": ["dist/**/*.js", "dist/**/*.d.ts", "cordis.patch.yml", "README.md", "README.zh.md", "LICENSE"],
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+  "peerDependencies": { "@deepseek-ai/cordis": "~4.1.0", "@deepseek-ai/schemastery": "~3.19.0", "@deepseek-ai/dsh-app-boot": "0.2.2-rc.1", "@deepseek-ai/dsh-brand": "0.2.2-rc.1", "dsh-im-kit": "0.2.0" },
+  "dependencies": { "zod": "4.6.6" },
+  "devDependencies": { "@deepseek-ai/dsh": "0.2.2-rc.1", "@types/node": "24.0.0", "@types/js-yaml": "4.0.9", "typescript": "5.9.3" },
+  "overrides": { "zod": "4.6.6", "undici": "8.12.2", "fflate": "0.8.3", "@modelcontextprotocol/client": "2.3.0" },
+  "scripts": { "build": "tsc -p tsconfig.json", "typecheck": "tsc -p tsconfig.json --noEmit", "test": "npm run build && node --test test/*.test.mjs", "prepack": "npm run build" }
+}

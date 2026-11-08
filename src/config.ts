@@ -1,12 +1,12 @@
 /** Explicit profile-local archive configuration. */
 import z from '@deepseek-ai/schemastery'
 import {isAbsolute,join} from 'node:path'
-import {identifier,type PeerId,type AccountId,type NetworkId,type TenantId} from 'dsh-im-kit'
+import {identifier,type PeerId,type AccountId,type NetworkId,type TenantId,type ConversationScope} from 'dsh-im-kit'
 import type {Settings} from './fields.ts'
 /** Parsed operator settings. */
 export interface Config extends Settings{}
 /** Archive is disabled and all scopes are excluded until explicitly configured. */
-export const Config:z<Config>=z.object({enabled:z.boolean().default(false),directory:z.string().default(''),tenants:z.array(z.string()).default([]),allowAnyTenant:z.boolean().default(false),networks:z.array(z.string()).default(['onebot11']),accounts:z.array(z.string()).default([]),allowAnyAccount:z.boolean().default(false),groups:z.array(z.string()).default([]),privatePeers:z.array(z.string()).default([]),maxPending:z.number().min(1).max(65536).step(1).default(512),maxRecordBytes:z.number().min(1024).max(67108864).step(1).default(4194304),maxInflightBytes:z.number().min(1024).max(268435456).step(1).default(33554432),maxOpenScopes:z.number().min(1).max(256).step(1).default(16),busyMs:z.number().min(0).max(10000).step(1).default(1000),requestTimeoutMs:z.number().min(100).max(120000).step(1).default(10000),startupMs:z.number().min(100).max(120000).step(1).default(10000),shutdownMs:z.number().min(100).max(120000).step(1).default(10000)})
+export const Config:z<Config>=z.object({enabled:z.boolean().default(false),directory:z.string().default(''),tenants:z.array(z.string()).default([]),allowAnyTenant:z.boolean().default(false),networks:z.array(z.string()).default(['onebot11']),accounts:z.array(z.string()).default([]),allowAnyAccount:z.boolean().default(false),groups:z.array(z.string()).default([]),privatePeers:z.array(z.string()).default([]),maxPending:z.number().min(1).max(65536).step(1).default(512),maxRecordBytes:z.number().min(1024).max(67108864).step(1).default(4194304),maxInflightBytes:z.number().min(1024).max(268435456).step(1).default(33554432),maxOpenScopes:z.number().min(1).max(256).step(1).default(16),busyMs:z.number().min(0).max(10000).step(1).default(1000),requestTimeoutMs:z.number().min(100).max(120000).step(1).default(10000),startupMs:z.number().min(100).max(120000).step(1).default(10000),shutdownMs:z.number().min(100).max(120000).step(1).default(10000),readEnabled:z.boolean().default(false),readMaxConcurrent:z.number().min(1).max(64).step(1).default(4),readMaxScan:z.number().min(1).max(10000).step(1).default(10000),readMaxScanBytes:z.number().min(1024).max(268435456).step(1).default(16777216),readMaxResults:z.number().min(1).max(100).step(1).default(100),readMaxResultBytes:z.number().min(1024).max(16777216).step(1).default(524288),readTimeoutMs:z.number().min(100).max(120000).step(1).default(10000)})
 /** Validated settings with explicit group and private peer IDs. */
 export interface Spec extends Omit<Config,'tenants'|'networks'|'accounts'|'groups'|'privatePeers'>{readonly tenants:ReadonlySet<TenantId>;readonly networks:ReadonlySet<NetworkId>;readonly accounts:ReadonlySet<AccountId>;readonly groups:ReadonlySet<PeerId>;readonly privatePeers:ReadonlySet<PeerId>}
 /** @param config - parsed profile settings. @param profile - absolute profile directory. @returns disabled state or resolved archive specification. */
@@ -19,4 +19,9 @@ export function resolve(config:Config,profile:string):Spec|null{
  if(tenants.size!==config.tenants.length||networks.size!==config.networks.length||accounts.size!==config.accounts.length||groups.size!==config.groups.length||privatePeers.size!==config.privatePeers.length)throw new Error('Duplicate archive selection')
  if((!config.allowAnyTenant&&!tenants.size)||!networks.size||(!config.allowAnyAccount&&!accounts.size)||(!groups.size&&!privatePeers.size))throw new Error('Archive tenant, network, account and scope selections are required')
  return{...config,directory:config.directory||join(profile,'data','qq-archive'),tenants,networks,accounts,groups,privatePeers}
+}
+/** @param spec - archive owner selections. @param scope - requested conversation. @returns whether all selected dimensions admit this conversation. */
+export function selectedScope(spec:Spec,scope:ConversationScope):boolean{
+ const {account,kind,peerId}=scope
+ return(spec.allowAnyTenant||spec.tenants.has(account.tenantId))&&spec.networks.has(account.networkId)&&(spec.allowAnyAccount||spec.accounts.has(account.accountId))&&(kind==='group'?spec.groups.has(peerId):spec.privatePeers.has(peerId))
 }

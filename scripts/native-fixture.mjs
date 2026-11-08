@@ -19,6 +19,8 @@ async function probe(ctx,config){
   const excluded={...source,scope:{...source.scope,peerId:id('peer','excluded-group')}}
   assert.deepEqual(await ctx.im.publish(excluded),{accepted:0,failed:0})
   checks.push('scope-selection-and-deduplication')
+  const page=await ctx.get('qqArchive').read({scope:source.scope,sender:source.senderId,query:'synthetic',limit:2,before:null,maxScan:10,maxScanBytes:4096,maxRecordBytes:4096,maxResultBytes:4096},new AbortController().signal)
+  assert.deepEqual(page.matches.map(item=>item.text),['native synthetic message']);assert.equal(ctx.get('qqArchive').status().activeReads,0);checks.push('owned-bounded-read-service')
   const control=ctx.qqArchiveControl,state=await control.describe();observed={state,serviceVisibleToFixture:Boolean(ctx.get('qqArchive')),serviceVisibleToControl:Boolean(control.ctx.get('qqArchive')),serviceStoredByControl:Boolean(control.archive)};assert.equal(state.active,true,'status must report the running archive');assert.equal(state.stored,1);assert.equal(state.duplicates,1)
   await assert.rejects(ctx.qqArchiveControl.save({revision:state.revision,patch:{maxPending:2}}),error=>error.details?.reason==='busy')
   checks.push('active-settings-are-not-restarted')

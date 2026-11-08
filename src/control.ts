@@ -33,7 +33,7 @@ export class ArchiveControl extends TypertRemoteService{
  private target():Entry{const all=this.ctx.configEditor.entries(),entry=all.find(value=>value.options.id===this.config.targetEntryId);if(!entry||entry.options.name!=='dsh-qq-archive'||!entry.fiber||all.some(value=>value!==entry&&value.options.name==='dsh-qq-archive'))throw fail('unavailable');return entry}
  private snapshot():Snapshot{
   const entry=this.target(),config=parse(entry.fiber?.effectiveConfig,this.ctx.profileContext.dir),service=this.archive,status=service?.status()
-  return{config:structuredClone(config),revision:revision(config),active:Boolean(service),attached:status?.attached??false,pending:status?.pending??0,stored:status?.stored??0,duplicates:status?.duplicates??0,conflicts:status?.conflicts??0,failures:status?.failures??0,lastError:status?.lastError??null,entryDisabled:entry.disabled,refreshMs:this.config.statusRefreshMs}
+  return{config:structuredClone(config),revision:revision(config),active:Boolean(service),attached:status?.attached??false,pending:status?.pending??0,activeReads:status?.activeReads??0,stored:status?.stored??0,duplicates:status?.duplicates??0,conflicts:status?.conflicts??0,failures:status?.failures??0,lastError:status?.lastError??null,entryDisabled:entry.disabled,refreshMs:this.config.statusRefreshMs}
  }
  private serial<T>(operation:()=>Promise<T>):Promise<T>{this.owner();const task=this.tail.then(()=>{if(this.lifetime.signal.aborted)throw fail('cancelled');return operation()});this.tail=task.then(()=>{},()=>{});return task}
  /** @returns saved settings and non-content counters. */

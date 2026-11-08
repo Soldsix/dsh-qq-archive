@@ -1,5 +1,6 @@
 /** Install and exercise the plugin through an isolated DSH SDK profile. */
 import assert from 'node:assert/strict'
+import {pnpmScript} from './pnpm.mjs'
 import {spawn} from 'node:child_process'
 import {once} from 'node:events'
 import {mkdtemp,mkdir,readFile,writeFile,copyFile,realpath} from 'node:fs/promises'
@@ -13,9 +14,10 @@ const owned=relative(runs,area);assert.ok(!owned.startsWith('..')&&!isAbsolute(o
 const attempt=await mkdtemp(join(area,'attempt-')),home=join(area,'home'),profile='archive-native',profileRoot=join(home,'profiles',profile)
 const argument=name=>{const index=process.argv.indexOf(name);assert.ok(index>=0&&process.argv[index+1],'Required '+name);return process.argv[index+1]}
 const dsh=await realpath(join(root,'node_modules','@deepseek-ai','dsh','lib','bin.js'))
-const archive=await realpath(argument('--archive')),kit=await realpath(argument('--kit'))
-const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/KEY|SECRET|TOKEN|PASSWORD|DEEPSEEK_BASE_URL/i.test(key)))
-await mkdir(join(area,'temp'),{recursive:true});Object.assign(env,{DSH_HOME:home,TEMP:join(area,'temp'),TMP:join(area,'temp'),DSH_PRIMARY_RUNTIME:'',DSH_SYSTEM_PROMPT:'Synthetic isolated profile.',DEEPSEEK_API_KEY:'synthetic-loopback-only',DEEPSEEK_BASE_URL:'http://127.0.0.1:9/anthropic'})
+const manifest=JSON.parse(await readFile(join(root,'package.json'),'utf8'))
+const archive=process.argv.includes('--archive')?await realpath(argument('--archive')):join(root,'artifacts',manifest.name+'-'+manifest.version+'.tgz')
+const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!/KEY|SECRET|TOKEN|PASSWORD|DEEPSEEK_BASE_URL/i.test(key)&&key.toUpperCase()!=='PATH'))
+await mkdir(join(area,'temp'),{recursive:true});Object.assign(env,{PATH:join(root,'node_modules','.bin')+delimiter+(process.env.PATH??process.env.Path??''),DSH_HOME:home,TEMP:join(area,'temp'),TMP:join(area,'temp'),DSH_PRIMARY_RUNTIME:'',DSH_SYSTEM_PROMPT:'Synthetic isolated profile.',DEEPSEEK_API_KEY:'synthetic-loopback-only',DEEPSEEK_BASE_URL:'http://127.0.0.1:9/anthropic'})
 async function run(argv,cwd){
  const timeout=AbortSignal.timeout(180000),child=spawn(process.execPath,argv,{cwd,env,windowsHide:true,signal:timeout,stdio:['ignore','pipe','pipe']});let output='',failure
  child.stdout.on('data',data=>{output+=data});child.stderr.on('data',data=>{output+=data});child.once('error',error=>{failure=error})
@@ -27,15 +29,13 @@ await run([dsh,'--profile',profile,'--from-default-profile','sdk','--dump-config
 const manifest=JSON.parse(await readFile(join(profileRoot,'package.json'),'utf8')),own=JSON.parse(await readFile(join(root,'package.json'),'utf8'))
 manifest.pnpm={...manifest.pnpm,overrides:own.overrides};await writeFile(join(profileRoot,'package.json'),JSON.stringify(manifest,null,2)+'\n')
 await writeFile(join(profileRoot,'.npmrc'),'package-import-method=copy\nstore-dir='+join(runs,'pnpm-store').replaceAll('\\','/')+'\n')
-let pnpm
-find:for(const directory of(process.env.PATH??'').split(delimiter))for(const candidate of[join(directory,'pnpm.cjs'),join(directory,'node_modules','pnpm','bin','pnpm.cjs'),join(directory,'node_modules','corepack','dist','pnpm.js')]){try{pnpm=await realpath(candidate);break find}catch(error){if(error.code!=='ENOENT')throw error}}
-assert.ok(pnpm,'pnpm is required')
+const pnpm=await pnpmScript(root)
 const peers=['@deepseek-ai/cordis@~4.1.0','@deepseek-ai/cordis-plugin-loader@~1.1.0','@deepseek-ai/schemastery@~3.19.0',...['app-boot','brand','config-editor','typert-protocol','sandbox','llm-deepseek'].map(name=>'@deepseek-ai/dsh-'+name+'@0.2.2-rc.1')]
-await run([pnpm,'add',kit,'@deepseek-ai/dsh@0.2.2-rc.1',...peers,'--ignore-scripts'],profileRoot)
+await run([pnpm,'add','@deepseek-ai/dsh@0.2.2-rc.1',...peers,'--ignore-scripts'],profileRoot)
 await run([dsh,'plugin','--profile',profile,'add',archive],area)
 }
 const fixture=join(profileRoot,'archive-fixture.mjs'),resultPath=join(attempt,'result.json');await copyFile(join(root,'scripts','native-fixture.mjs'),fixture)
-await writeFile(join(profileRoot,'cordis.patch.yml'),JSON.stringify([{id:'qq-archive',config:{enabled:true,directory:join(attempt,'db'),tenants:['tenant-test'],accounts:['account-test'],groups:['group-test']}},{insert:[{id:'archive-fixture',name:pathToFileURL(fixture).href,config:{resultPath}}]}],null,2)+'\n')
+await writeFile(join(profileRoot,'cordis.patch.yml'),JSON.stringify([{id:'qq-archive',config:{enabled:true,readEnabled:true,directory:join(attempt,'db'),tenants:['tenant-test'],accounts:['account-test'],groups:['group-test']}},{insert:[{id:'archive-fixture',name:pathToFileURL(fixture).href,config:{resultPath}}]}],null,2)+'\n')
 const bin=join(profileRoot,'node_modules','@deepseek-ai','dsh','lib','bin.js'),child=spawn(process.execPath,[bin,'--profile',profile],{cwd:area,env,windowsHide:true,stdio:['pipe','pipe','pipe']})
 let stdout='',stderr='',exitCode;child.stderr.on('data',data=>{stderr+=data});child.stdout.on('data',data=>{stdout+=data});const exit=once(child,'close').then(([code,signal])=>{exitCode=code;return{code,signal}})
 try{

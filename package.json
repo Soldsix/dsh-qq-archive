@@ -1,6 +1,6 @@
 {
   "name": "dsh-qq-archive",
-  "version": "0.1.0-development",
+  "version": "0.2.1",
   "description": "Scoped durable message archiving for DSH messaging plugins.",
   "type": "module",
   "license": "MIT",
@@ -32,7 +32,8 @@
     "cordis.patch.yml",
     "README.md",
     "README.zh.md",
-    "LICENSE"
+    "LICENSE",
+    "README.i18n.yaml"
   ],
   "dsh": {
     "bundle": {
@@ -53,13 +54,13 @@
     "@deepseek-ai/schemastery": "~3.19.0",
     "@deepseek-ai/dsh-app-boot": "0.2.2-rc.1",
     "@deepseek-ai/dsh-brand": "0.2.2-rc.1",
-    "dsh-im-kit": "0.2.0",
     "@deepseek-ai/cordis-plugin-loader": "~1.1.0",
     "@deepseek-ai/dsh-config-editor": "0.2.2-rc.1",
     "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.1"
   },
   "dependencies": {
-    "zod": "4.6.6"
+    "zod": "4.6.6",
+    "dsh-im-kit": "https://github.com/Soldsix/dsh-im-kit/releases/download/v0.2.1/dsh-im-kit-0.2.1.tgz"
   },
   "devDependencies": {
     "@deepseek-ai/dsh": "0.2.2-rc.1",
@@ -90,7 +91,8 @@
     "@deepseek-ai/dsh-client-ui-primitives": "0.2.2-rc.1",
     "@deepseek-ai/dsh-util-file-drag": "0.2.2-rc.1",
     "@shikijs/langs": "4.4.3",
-    "@types/mdast": "4.0.4"
+    "@types/mdast": "4.0.4",
+    "pnpm": "10.33.2"
   },
   "overrides": {
     "zod": "4.6.6",
@@ -102,6 +104,18 @@
     "build": "tsc -p tsconfig.host.json && tsc -p tsconfig.client.json && node scripts/build-client.mjs",
     "typecheck": "tsc -p tsconfig.host.json --noEmit && tsc -p tsconfig.client.json --noEmit",
     "test": "npm run build && node --test test/*.test.mjs",
-    "prepack": "npm run build"
+    "prepack": "npm run build && node scripts/prepare-pack.mjs",
+    "check": "npm test",
+    "test:native": "node scripts/test-native.mjs",
+    "test:web": "node scripts/test-web.mjs",
+    "test:browser": "node scripts/install-browser.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Soldsix/dsh-qq-archive.git"
+  },
+  "homepage": "https://github.com/Soldsix/dsh-qq-archive",
+  "bugs": {
+    "url": "https://github.com/Soldsix/dsh-qq-archive/issues"
   }
 }

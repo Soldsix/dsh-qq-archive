@@ -1,5 +1,5 @@
 /** Strict external consumer fixture; this file does not access profile data. */
-import {Config,selected,type ArchiveConfig,type ArchiveStatus} from 'dsh-qq-archive'
+import {Config,selected,type ArchiveConfig,type ArchiveStatus,type ArchiveReaderService,type ArchiveReadRequest,type ArchivePage} from 'dsh-qq-archive'
 import Control,{Config as ControlConfig,type ControlConfig as ControlSettings} from 'dsh-qq-archive/control'
 import type {InboundMessage} from 'dsh-im-kit'
 const config=(value:ArchiveConfig):ArchiveConfig=>Config(value)
@@ -8,3 +8,6 @@ const readStatus=(status:ArchiveStatus):number=>status.stored
 const choose:typeof selected=selected
 const consumer=(message:InboundMessage):InboundMessage=>message
 export {config,settings,readStatus,choose,consumer,Control}
+/** @param service - trusted storage owner. @param input - authenticated query. @param signal - query cancellation. @returns a bounded source page. */
+const read=(service:ArchiveReaderService,input:ArchiveReadRequest,signal:AbortSignal):Promise<ArchivePage>=>service.read(input,signal)
+export {read}

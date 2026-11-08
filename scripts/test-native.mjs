@@ -1,6 +1,7 @@
 /** Install and exercise the plugin through an isolated DSH SDK profile. */
 import assert from 'node:assert/strict'
 import {pnpmScript} from './pnpm.mjs'
+import {requiredProfilePeers} from './profile-peers.mjs'
 import {spawn} from 'node:child_process'
 import {once} from 'node:events'
 import {mkdtemp,mkdir,readFile,writeFile,copyFile,realpath} from 'node:fs/promises'
@@ -34,6 +35,7 @@ const boot=JSON.parse(await readFile(join(root,'node_modules','@deepseek-ai','ds
 const peers=[...bootPeers,'@deepseek-ai/cordis@~4.1.0','@deepseek-ai/cordis-plugin-loader@~1.1.0','@deepseek-ai/schemastery@~3.19.0',...['app-boot','brand','config-editor','typert-protocol','sandbox','llm-deepseek','llm-deepseek-api-key'].map(name=>'@deepseek-ai/dsh-'+name+'@0.2.2-rc.1')]
 await run([pnpm,'add','@deepseek-ai/dsh@0.2.2-rc.1',...peers,'--ignore-scripts'],profileRoot)
 await run([dsh,'plugin','--profile',profile,'add',archive],area)
+for(;;){const missing=await requiredProfilePeers(profileRoot);if(!missing.length)break;await run([pnpm,'add',...missing,'--ignore-scripts'],profileRoot)}
 }
 const fixture=join(profileRoot,'archive-fixture.mjs'),resultPath=join(attempt,'result.json');await copyFile(join(root,'scripts','native-fixture.mjs'),fixture)
 await writeFile(join(profileRoot,'cordis.patch.yml'),JSON.stringify([{id:'qq-archive',config:{enabled:true,readEnabled:true,directory:join(attempt,'db'),tenants:['tenant-test'],accounts:['account-test'],groups:['group-test']}},{insert:[{id:'archive-fixture',name:pathToFileURL(fixture).href,config:{resultPath}}]}],null,2)+'\n')

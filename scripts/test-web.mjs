@@ -1,6 +1,7 @@
 /** Headless isolated DSH Web profile; no desktop or real QQ interaction. */
 import assert from 'node:assert/strict'
 import {pnpmScript} from './pnpm.mjs'
+import {requiredProfilePeers} from './profile-peers.mjs'
 import {spawn} from 'node:child_process'
 import {once} from 'node:events'
 import {mkdtemp,mkdir,readFile,writeFile,realpath} from 'node:fs/promises'
@@ -35,6 +36,7 @@ const boot=JSON.parse(await readFile(join(root,'node_modules','@deepseek-ai','ds
 const peers=[...bootPeers,'@deepseek-ai/cordis@~4.1.0','@deepseek-ai/cordis-plugin-loader@~1.1.0','@deepseek-ai/schemastery@~3.19.0',...['app-boot','brand','config-editor','typert-protocol','client-connection','sandbox','llm-deepseek','llm-deepseek-api-key'].map(name=>'@deepseek-ai/dsh-'+name+'@0.2.2-rc.1')]
 await run([pnpm,'add','@deepseek-ai/dsh@0.2.2-rc.1',...peers,'--ignore-scripts'],profileRoot)
 await run([dsh,'plugin','--profile',profile,'add',archive],area)
+for(;;){const missing=await requiredProfilePeers(profileRoot);if(!missing.length)break;await run([pnpm,'add',...missing,'--ignore-scripts'],profileRoot)}
 }
 await writeFile(join(profileRoot,'cordis.patch.yml'),JSON.stringify([{id:'qq-archive-settings',config:{statusRefreshMs:250}},{id:'session-title-llm',disabled:true},{id:'session-telemetry-otel',disabled:true}],null,2)+'\n')
 const child=spawn(process.execPath,[join(profileRoot,'node_modules','@deepseek-ai','dsh','lib','bin.js'),'--profile',profile,'--host','127.0.0.1','--port','0','--no-open'],{cwd:area,env,windowsHide:true,stdio:['pipe','pipe','pipe']})

@@ -30,7 +30,8 @@ const manifest=JSON.parse(await readFile(join(profileRoot,'package.json'),'utf8'
 manifest.pnpm={...manifest.pnpm,overrides:own.overrides};await writeFile(join(profileRoot,'package.json'),JSON.stringify(manifest,null,2)+'\n')
 await writeFile(join(profileRoot,'.npmrc'),'package-import-method=copy\nstore-dir='+join(runs,'pnpm-store').replaceAll('\\','/')+'\n')
 const pnpm=await pnpmScript(root)
-const peers=['@deepseek-ai/cordis@~4.1.0','@deepseek-ai/cordis-plugin-loader@~1.1.0','@deepseek-ai/schemastery@~3.19.0',...['app-boot','brand','config-editor','typert-protocol','sandbox','llm-deepseek','llm-deepseek-api-key'].map(name=>'@deepseek-ai/dsh-'+name+'@0.2.2-rc.1')]
+const boot=JSON.parse(await readFile(join(root,'node_modules','@deepseek-ai','dsh-app-boot','package.json'),'utf8')),bootPeers=Object.entries(boot.peerDependencies).map(([name,version])=>name+'@'+version)
+const peers=[...bootPeers,'@deepseek-ai/cordis@~4.1.0','@deepseek-ai/cordis-plugin-loader@~1.1.0','@deepseek-ai/schemastery@~3.19.0',...['app-boot','brand','config-editor','typert-protocol','sandbox','llm-deepseek','llm-deepseek-api-key'].map(name=>'@deepseek-ai/dsh-'+name+'@0.2.2-rc.1')]
 await run([pnpm,'add','@deepseek-ai/dsh@0.2.2-rc.1',...peers,'--ignore-scripts'],profileRoot)
 await run([dsh,'plugin','--profile',profile,'add',archive],area)
 }

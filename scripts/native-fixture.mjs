@@ -2,7 +2,10 @@
 import assert from 'node:assert/strict'
 import {writeFile} from 'node:fs/promises'
 import {setTimeout as delay} from 'node:timers/promises'
-import {identifier,ImRuntime} from 'dsh-im-kit'
+import {createRequire} from 'node:module'
+import {pathToFileURL} from 'node:url'
+const require=createRequire(import.meta.url),owner=createRequire(require.resolve('dsh-qq-archive'))
+const {identifier,ImRuntime}=await import(pathToFileURL(owner.resolve('dsh-im-kit')).href)
 export const name='synthetic-archive-fixture'
 export function apply(ctx,config){
  const im=new ImRuntime()

@@ -31,7 +31,7 @@ const manifest=JSON.parse(await readFile(join(profileRoot,'package.json'),'utf8'
 manifest.pnpm={...manifest.pnpm,overrides:own.overrides};await writeFile(join(profileRoot,'package.json'),JSON.stringify(manifest,null,2)+'\n')
 await writeFile(join(profileRoot,'.npmrc'),'package-import-method=copy\nstore-dir='+join(runs,'pnpm-store').replaceAll('\\','/')+'\n')
 const pnpm=await pnpmScript(root)
-const peers=['@deepseek-ai/cordis@~4.1.0','@deepseek-ai/cordis-plugin-loader@~1.1.0','@deepseek-ai/schemastery@~3.19.0',...['app-boot','brand','config-editor','typert-protocol','client-connection','sandbox','llm-deepseek'].map(name=>'@deepseek-ai/dsh-'+name+'@0.2.2-rc.1')]
+const peers=['@deepseek-ai/cordis@~4.1.0','@deepseek-ai/cordis-plugin-loader@~1.1.0','@deepseek-ai/schemastery@~3.19.0',...['app-boot','brand','config-editor','typert-protocol','client-connection','sandbox','llm-deepseek','llm-deepseek-api-key'].map(name=>'@deepseek-ai/dsh-'+name+'@0.2.2-rc.1')]
 await run([pnpm,'add','@deepseek-ai/dsh@0.2.2-rc.1',...peers,'--ignore-scripts'],profileRoot)
 await run([dsh,'plugin','--profile',profile,'add',archive],area)
 }
@@ -59,7 +59,7 @@ try{
  await groups.fill('group-test\ngroup-other');await form.getByRole('button',{name:/^保存$|^Save$/}).click();await page.getByText(/^配置已保存$|^Settings saved$/).waitFor();checks.push('settings-edit-after-archive-is-paused')
  await form.getByRole('switch',{name:/启用归档|Enable archive/}).click();await form.getByRole('button',{name:/^保存$|^Save$/}).click();await form.getByText(/归档运行中|Archive active/).waitFor();checks.push('resume-after-edit')
  assert.deepEqual(errors,[]);await writeFile(join(attempt,'summary.json'),JSON.stringify({passed:true,checks,clientErrors:errors,realQqMessagesSent:0},null,2)+'\n');console.log(JSON.stringify({area,attempt,passed:true,checks,realQqMessagesSent:0}))
-}catch(error){if(page){await page.screenshot({path:join(attempt,'failure.png'),fullPage:true}).catch(()=>{});await writeFile(join(attempt,'body.txt'),await page.locator('body').innerText()).catch(()=>{})}throw error
+}catch(error){console.error(stderr);if(page){await page.screenshot({path:join(attempt,'failure.png'),fullPage:true}).catch(()=>{});await writeFile(join(attempt,'body.txt'),await page.locator('body').innerText()).catch(()=>{})}throw error
 }finally{
  await context?.close();if(exitCode===undefined){child.kill('SIGINT');const fallback=setTimeout(()=>child.kill(),5000);await exit;clearTimeout(fallback)}await writeFile(join(attempt,'process.log'),stdout+'\n'+stderr)
 }

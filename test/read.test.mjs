@@ -50,9 +50,9 @@ test('scan byte ceiling pages before an uninspected record',async t=>{
 })
 test('read capacity includes a cancelling worker until exit and ingestion remains available',async t=>{
  const {store,reader}=await setup(t,{readMaxConcurrent:1});await store.append(event(1))
- const cancel=new AbortController(),first=reader.read(query(),cancel.signal);cancel.abort()
+ const cancel=new AbortController(),first=reader.read(query(),cancel.signal),rejected=assert.rejects(first,error=>error.code==='cancelled');cancel.abort()
  await assert.rejects(reader.read(query(),signal()),error=>error.code==='capacity')
- assert.equal(await store.append(event(2)),'stored');await assert.rejects(first,error=>error.code==='cancelled')
+ assert.equal(await store.append(event(2)),'stored');await rejected
  assert.equal(reader.activeCount(),0);assert.equal((await reader.read(query(),signal())).matches.length,2)
 })
 test('close joins reads and writes independently and refuses future reads',async t=>{

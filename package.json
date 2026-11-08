@@ -108,7 +108,8 @@
     "check": "npm test",
     "test:native": "node scripts/test-native.mjs",
     "test:web": "node scripts/test-web.mjs",
-    "test:browser": "node scripts/install-browser.mjs"
+    "test:browser": "node scripts/install-browser.mjs",
+    "test:consumer": "node scripts/test-consumer.mjs"
   },
   "repository": {
     "type": "git",

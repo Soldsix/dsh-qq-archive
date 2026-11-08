@@ -30,7 +30,7 @@ const manifest=JSON.parse(await readFile(join(profileRoot,'package.json'),'utf8'
 manifest.pnpm={...manifest.pnpm,overrides:own.overrides};await writeFile(join(profileRoot,'package.json'),JSON.stringify(manifest,null,2)+'\n')
 await writeFile(join(profileRoot,'.npmrc'),'package-import-method=copy\nstore-dir='+join(runs,'pnpm-store').replaceAll('\\','/')+'\n')
 const pnpm=await pnpmScript(root)
-const peers=['@deepseek-ai/cordis@~4.1.0','@deepseek-ai/cordis-plugin-loader@~1.1.0','@deepseek-ai/schemastery@~3.19.0',...['app-boot','brand','config-editor','typert-protocol','sandbox','llm-deepseek'].map(name=>'@deepseek-ai/dsh-'+name+'@0.2.2-rc.1')]
+const peers=['@deepseek-ai/cordis@~4.1.0','@deepseek-ai/cordis-plugin-loader@~1.1.0','@deepseek-ai/schemastery@~3.19.0',...['app-boot','brand','config-editor','typert-protocol','sandbox','llm-deepseek','llm-deepseek-api-key'].map(name=>'@deepseek-ai/dsh-'+name+'@0.2.2-rc.1')]
 await run([pnpm,'add','@deepseek-ai/dsh@0.2.2-rc.1',...peers,'--ignore-scripts'],profileRoot)
 await run([dsh,'plugin','--profile',profile,'add',archive],area)
 }
@@ -40,7 +40,7 @@ const bin=join(profileRoot,'node_modules','@deepseek-ai','dsh','lib','bin.js'),c
 let stdout='',stderr='',exitCode;child.stderr.on('data',data=>{stderr+=data});child.stdout.on('data',data=>{stdout+=data});const exit=once(child,'close').then(([code,signal])=>{exitCode=code;return{code,signal}})
 try{
  let result;const deadline=Date.now()+60000
- while(Date.now()<deadline){try{result=JSON.parse(await readFile(resultPath,'utf8'));break}catch(error){if(error.code!=='ENOENT')throw error}assert.equal(exitCode,undefined,'DSH exited before the probe: '+stderr.slice(-500));await delay(40)}
+ while(Date.now()<deadline){try{result=JSON.parse(await readFile(resultPath,'utf8'));break}catch(error){if(error.code!=='ENOENT')throw error}assert.equal(exitCode,undefined,'DSH exited before the probe: '+stderr.slice(-5000));await delay(40)}
  assert.ok(result,'DSH probe timed out');assert.equal(result.passed,true,JSON.stringify(result.error))
  child.stdin.write(JSON.stringify({jsonrpc:'2.0',id:1,method:'shutdown',params:{}})+'\n');const stopped=await Promise.race([exit,delay(15000,undefined,{ref:false}).then(()=>{throw Error('DSH shutdown timed out')})]);assert.deepEqual(stopped,{code:0,signal:null})
  await writeFile(join(attempt,'summary.json'),JSON.stringify({...result,normalShutdown:true},null,2)+'\n');console.log(JSON.stringify({area,attempt,...result,normalShutdown:true}))

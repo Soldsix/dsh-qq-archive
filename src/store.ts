@@ -6,7 +6,7 @@ import type {Spec} from './config.ts'
 import {ArchiveError,reply} from './wire.ts'
 
 type Outcome='stored'|'duplicate'|'conflict'
-interface Pending{method:'append'|'close';settled:boolean;resolve:(value:unknown)=>void;reject:(error:Error)=>void;timer:ReturnType<typeof setTimeout>}
+interface Pending{method:'append'|'close';bytes:number;settled:boolean;resolve:(value:unknown)=>void;reject:(error:Error)=>void;timer:ReturnType<typeof setTimeout>}
 /** Owned SQLite worker and outstanding write tracking. */
 export class ArchiveStore{
  private readonly worker:Worker
@@ -14,6 +14,7 @@ export class ArchiveStore{
  private readonly done:Promise<number>
  private readonly ready:Promise<void>
  private serial=0
+ private pendingBytes=0
  private fault:ArchiveError|undefined
  private exited=false
  private stopping:Promise<void>|undefined
@@ -31,7 +32,7 @@ export class ArchiveStore{
     if(value.type==='ready'){clearTimeout(timer);resolve();return}
     if(value.type==='startup-error'||value.type==='fatal'){const error=new ArchiveError(value.code);this.fail(error);failure(error);return}
     const request=this.pending.get(value.id);if(!request)return
-    this.pending.delete(value.id);clearTimeout(request.timer)
+    this.pending.delete(value.id);this.pendingBytes-=request.bytes;clearTimeout(request.timer)
     if(!request.settled){if(value.ok)request.resolve(value.value);else request.reject(new ArchiveError(value.code))}
    })
   })
@@ -39,22 +40,26 @@ export class ArchiveStore{
  }
  /** @param spec - resolved settings. @returns a ready worker. */
  static async open(spec:Spec):Promise<ArchiveStore>{const store=new ArchiveStore(spec);try{await store.ready;return store}catch(error){await store.close();throw error}}
- private fail(error:ArchiveError):void{this.fault??=error;for(const item of this.pending.values()){clearTimeout(item.timer);item.reject(this.fault)}this.pending.clear()}
- private request(method:'append'|'close',input?:InboundMessage):Promise<unknown>{
+ private fail(error:ArchiveError):void{this.fault??=error;for(const item of this.pending.values()){clearTimeout(item.timer);item.reject(this.fault)}this.pending.clear();this.pendingBytes=0}
+ private request(method:'append'|'close',input?:InboundMessage,bytes=0):Promise<unknown>{
   if(this.fault)return Promise.reject(this.fault)
   if(this.stopping&&method!=='close')return Promise.reject(new ArchiveError('closed'))
   const id=++this.serial
   return new Promise((resolve,reject)=>{
    const timer=setTimeout(()=>{const item=this.pending.get(id);if(item){item.settled=true;reject(new ArchiveError('timeout'))}},this.spec.requestTimeoutMs)
-   this.pending.set(id,{method,settled:false,resolve,reject,timer})
-   try{this.worker.postMessage(method==='append'?{id,method,input}:{id,method})}catch(error){this.pending.delete(id);clearTimeout(timer);reject(new ArchiveError('unavailable'))}
+   this.pending.set(id,{method,bytes,settled:false,resolve,reject,timer});this.pendingBytes+=bytes
+   try{this.worker.postMessage(method==='append'?{id,method,input}:{id,method})}catch(error){this.pending.delete(id);this.pendingBytes-=bytes;clearTimeout(timer);reject(new ArchiveError('unavailable'))}
   })
  }
  /** @param input - normalized source preserved without truncation. @returns durable insert, duplicate or identity conflict. */
  append(input:InboundMessage):Promise<Outcome>{
   if(this.stopping)return Promise.reject(new ArchiveError('closed'))
   if(this.pendingCount()>=this.spec.maxPending)return Promise.reject(new ArchiveError('capacity'))
-  return this.request('append',input).then(value=>{const parsed=z.enum(['stored','duplicate','conflict']).safeParse(value);if(!parsed.success)throw new ArchiveError('invalid-data');return parsed.data})
+  let bytes:number
+  try{bytes=Buffer.byteLength(JSON.stringify(input),'utf8')}catch(error){return Promise.reject(new ArchiveError('invalid-data'))}
+  if(bytes>this.spec.maxRecordBytes)return Promise.reject(new ArchiveError('too-large'))
+  if(this.pendingBytes+bytes>this.spec.maxInflightBytes)return Promise.reject(new ArchiveError('capacity'))
+  return this.request('append',input,bytes).then(value=>{const parsed=z.enum(['stored','duplicate','conflict']).safeParse(value);if(!parsed.success)throw new ArchiveError('invalid-data');return parsed.data})
  }
  /** @returns outstanding write count without source bodies. */
  pendingCount():number{return [...this.pending.values()].filter(item=>item.method==='append').length}

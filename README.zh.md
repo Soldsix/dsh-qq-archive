@@ -8,4 +8,18 @@ SQLite 文件不加密，依赖主机文件权限保护，不能抵御有特权�
 
 需要 Node ^22.19 或 >=24、DSH 0.2.2-rc.1 和兼容的 `dsh-im-kit` 传输插件。附带的 bundle 默认关闭。开启前配置租户、网络、账号以及群或私聊对象；`allowAnyTenant`、`allowAnyAccount` 只放宽对应维度，不会取消会话选择。默认目录为当前 profile 的 `data/qq-archive`；自定义目录必须为绝对路径。
 
-状态服务仅提供计数和错误码，不提供消息正文或身份信息。目前没有自动删除、历史消息重放、迁移、媒体下载和界面配置。`npm test` 仅使用合成数据；不要将测试指向生产 profile 或数据库。
+先在 profile 中安装匹配版本的 `dsh-im-kit`，再通过 `dsh plugin --profile <profile> add <插件包>` 添加本插件。`dsh-im-kit` 发布前需要使用本地构建的包；还需要一个能发布规范化事件的 IM 传输插件。所有者可以在 DSH 插件页面配置，或在 profile 补丁中写入：
+
+```yaml
+- id: qq-archive
+  config:
+    enabled: true
+    tenants: [example-tenant]
+    networks: [onebot11]
+    accounts: [example-account]
+    groups: [example-group]
+```
+
+这些 ID 仅为示例，必须与传输插件使用的账号和会话身份一致。只有确实需要保存私聊时才添加 `privatePeers`。
+
+状态服务仅提供计数和错误码，不提供消息正文或身份信息。所有者设置入口展示配置和运行状态；归档运行期间只允许关闭归档。请先关闭并保存，再修改其他配置；重新启用前收到的消息不会归档。单条和待处理字节数有可配置上限，超限会报错，不会截断消息。目前没有自动删除、历史消息重放、迁移或媒体下载。`npm test` 仅使用合成数据；不要将测试指向生产 profile 或数据库。

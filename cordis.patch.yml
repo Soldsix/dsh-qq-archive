@@ -1,4 +1,6 @@
 - insert:
+    - id: qq-archive-settings
+      name: dsh-qq-archive/control
     - id: qq-archive
       name: dsh-qq-archive
       config:

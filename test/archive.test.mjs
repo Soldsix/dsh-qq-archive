@@ -12,7 +12,7 @@ import {selected} from '../dist/index.js'
 import * as plugin from '../dist/index.js'
 
 const id=(domain,value)=>identifier(`im.${domain}`,value)
-const config=(directory,extra={})=>({enabled:true,directory,tenants:['tenant-a'],allowAnyTenant:false,networks:['onebot11'],accounts:['account-a'],allowAnyAccount:false,groups:['group-a','group-b'],privatePeers:['private-a'],maxPending:128,maxOpenScopes:1,busyMs:100,requestTimeoutMs:2000,startupMs:3000,shutdownMs:3000,...extra})
+const config=(directory,extra={})=>({enabled:true,directory,tenants:['tenant-a'],allowAnyTenant:false,networks:['onebot11'],accounts:['account-a'],allowAnyAccount:false,groups:['group-a','group-b'],privatePeers:['private-a'],maxPending:128,maxRecordBytes:4194304,maxInflightBytes:33554432,maxOpenScopes:1,busyMs:100,requestTimeoutMs:2000,startupMs:3000,shutdownMs:3000,...extra})
 const input=(message='message-a',peer='group-a',account='account-a')=>({scope:{account:{tenantId:id('tenant','tenant-a'),networkId:id('network','onebot11'),accountId:id('account',account)},kind:'group',peerId:id('peer',peer)},messageId:id('message',message),senderId:id('user','person-a'),sentAt:100,receivedAt:110,directedToBot:false,parts:[{type:'text',text:'synthetic line one\nline two'},{type:'image',attachmentId:id('attachment','image-a')}]})
 async function setup(extra={}){const root=absolute('.test-artifacts');await import('node:fs/promises').then(fs=>fs.mkdir(root,{recursive:true}));const dir=await mkdtemp(join(root,'archive-'));const spec=resolve(config(dir,extra),dir);assert.ok(spec);return{dir,spec,store:await ArchiveStore.open(spec)}}
 
@@ -91,6 +91,16 @@ test('timed-out worker writes keep occupying the bounded queue',async()=>{
  const db=new DatabaseSync(join(dir,'scopes',filename),{readOnly:true});assert.equal(db.prepare('SELECT count(*) AS count FROM messages WHERE message_id=\'second\'').get().count,1);db.close()
 })
 
+test('record and outstanding byte limits refuse writes without truncating',async()=>{
+ const {store}=await setup({maxRecordBytes:1024,maxInflightBytes:1024})
+ const huge={...input('huge'),parts:[{type:'text',text:'x'.repeat(2000)}]}
+ await assert.rejects(store.append(huge),error=>error.code==='too-large')
+ const medium={...input('medium'),parts:[{type:'text',text:'x'.repeat(600)}]}
+ const first=store.append(medium)
+ await assert.rejects(store.append({...medium,messageId:id('message','other')}),error=>error.code==='capacity')
+ assert.equal(await first,'stored');await store.close()
+})
+
 test('Cordis subscription archives only selected events and disposes cleanly',async()=>{
  const root=absolute('.test-artifacts');await import('node:fs/promises').then(fs=>fs.mkdir(root,{recursive:true}));const dir=await mkdtemp(join(root,'mount-'))
  const ctx=new Context(),im=new ImRuntime()
@@ -103,4 +113,20 @@ test('Cordis subscription archives only selected events and disposes cleanly',as
  assert.equal(ctx.qqArchive.status().stored,1);assert.equal(ctx.qqArchive.status().duplicates,1)
  await fiber.dispose();assert.deepEqual(await im.publish(input('after-stop')),{accepted:0,failed:0})
  await services.dispose();await im.close()
+})
+
+test('a blocked archive write does not delay an independent chat listener',async()=>{
+ const root=absolute('.test-artifacts');await import('node:fs/promises').then(fs=>fs.mkdir(root,{recursive:true}));const dir=await mkdtemp(join(root,'chat-parallel-'))
+ const ctx=new Context(),im=new ImRuntime();let chats=0
+ const services=ctx.plugin({name:'parallel-chat-fixture',apply(child){child.effect(()=>child.provide('profileContext',{dir}));child.effect(()=>child.provide('im',im))}});await services.await()
+ const fiber=ctx.plugin(plugin,plugin.Config(config(join(dir,'db'),{busyMs:900,requestTimeoutMs:1100})));await fiber.await()
+ const detach=im.subscribe(()=>{chats++},()=>true)
+ await im.publish(input('seed'));assert.equal(chats,1)
+ const file=(await readdir(join(dir,'db','scopes'))).find(name=>name.endsWith('.sqlite3'))
+ const lock=new DatabaseSync(join(dir,'db','scopes',file));lock.exec('BEGIN IMMEDIATE')
+ const delivered=im.publish(input('blocked'))
+ await new Promise(resolve=>setImmediate(resolve));assert.equal(chats,2)
+ assert.equal(ctx.qqArchive.status().pending,1)
+ lock.exec('ROLLBACK');lock.close();assert.deepEqual(await delivered,{accepted:2,failed:0})
+ await detach();await fiber.dispose();await services.dispose();await im.close()
 })

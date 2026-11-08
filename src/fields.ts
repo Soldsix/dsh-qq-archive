@@ -1,0 +1,4 @@
+/** Profile-local archive selection and resource limits. */
+export interface Settings{enabled:boolean;directory:string;tenants:string[];allowAnyTenant:boolean;networks:string[];accounts:string[];allowAnyAccount:boolean;groups:string[];privatePeers:string[];maxPending:number;maxRecordBytes:number;maxInflightBytes:number;maxOpenScopes:number;busyMs:number;requestTimeoutMs:number;startupMs:number;shutdownMs:number}
+/** Editable representations shared by Host and Client. */
+export const FIELDS={enabled:'boolean',directory:'string',tenants:'list',allowAnyTenant:'boolean',networks:'list',accounts:'list',allowAnyAccount:'boolean',groups:'list',privatePeers:'list',maxPending:'number',maxRecordBytes:'number',maxInflightBytes:'number',maxOpenScopes:'number',busyMs:'number',requestTimeoutMs:'number',startupMs:'number',shutdownMs:'number'} as const satisfies Record<keyof Settings,string>

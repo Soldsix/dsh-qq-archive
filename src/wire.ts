@@ -17,7 +17,7 @@ export const inputSchema:z.ZodType<InboundMessage>=z.strictObject({
  ])),
 })
 /** Errors contain only operational codes. */
-export const errorCode=z.enum(['unavailable','timeout','startup-failed','schema-unsupported','invalid-data','closed','worker-exited','capacity'])
+export const errorCode=z.enum(['unavailable','timeout','startup-failed','schema-unsupported','invalid-data','closed','worker-exited','capacity','too-large'])
 /** Worker setup uses an explicit directory and capacity limits. */
 export const workerConfig=z.strictObject({directory:z.string().refine(isAbsolute),maxOpenScopes:z.number().int().min(1).max(256),busyMs:z.number().int().min(0).max(10000)})
 const id=z.number().int().positive()

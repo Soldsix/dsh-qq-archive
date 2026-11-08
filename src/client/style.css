@@ -1,0 +1,8 @@
+.qqarchive-page { display: flex; flex-direction: column; gap: 16px; max-width: 780px; min-width: 0; padding: 4px 0 16px; color: var(--dsw-alias-label-primary); font-size: 13px; }
+.qqarchive-page p { margin: 0; line-height: 1.6; }
+.qqarchive-page form { display: flex; flex-direction: column; gap: 14px; padding: 16px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 12px; }
+.qqarchive-field { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr); gap: 8px 20px; align-items: center; }
+.qqarchive-field input, .qqarchive-field textarea { width: 100%; box-sizing: border-box; }
+.qqarchive-field textarea { min-height: 72px; resize: vertical; color: inherit; background: transparent; border: 1px solid var(--dsw-alias-border-l2); border-radius: 6px; padding: 8px; }
+.qqarchive-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 600px) { .qqarchive-field { grid-template-columns: minmax(0, 1fr); gap: 8px; } .qqarchive-page form { padding: 12px; } }
